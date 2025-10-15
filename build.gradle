@@ -1,25 +1,59 @@
 plugins {
     id 'java'
 }
-
 group = 'me.mabowdoufu'
 version = '1.0.0'
-
 repositories {
     mavenCentral()
     maven { url = 'https://repo.papermc.io/repository/maven-public/' }
 }
-
 dependencies {
     compileOnly 'io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT'
 }
-
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
 }
-
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
+// -----------------------------
+// JAR 出力先を自鯖 plugins フォルダに変更
+// -----------------------------
+tasks.jar {
+    destinationDirectory.set(file("C:/Users/mabou/Mabows/Mabows/自鯖_1.21.8/plugins"))
+    archiveBaseName.set("Man10CheckersGradle")
+    archiveVersion.set("1.0.0")
+}
+// -----------------------------
+// サーバー停止・再起動タスク
+// -----------------------------
+tasks.register("reloadServer") {
+    group = "minecraft"
+    description = "Stop server if running, deploy plugin, and restart Paper server"
+    doLast {
+        def serverDir = file("C:/Users/mabou/Mabows/Mabows/自鯖_1.21.8")
+        def startBat = new File(serverDir, "start.bat")
+        if (!startBat.exists()) {
+            println "Error: start.bat not found in ${serverDir}"
+            return
+        }
+        println "Stopping server if running..."
+        // サーバー停止処理（安全策として手動停止推奨）
+        // 例：Paperサーバー側で自動停止用の仕組みを入れる場合はここに制御を書く
+        // Windowsの場合、プロセスをkillする場合は以下を使う例
+        // ["taskkill", "/F", "/IM", "java.exe"].execute()
+        sleep(5000) // サーバー停止待機（必要に応じて調整）
+        println "Deploying plugin..."
+        def pluginJar = file("C:/Users/mabou/Mabows/Mabows/自鯖_1.21.8/plugins/Man10CheckersGradle-1.0.0.jar")
+        if (!pluginJar.exists()) {
+            println "Warning: Plugin jar not found!"
+        }
+        println "Starting server..."
+        ["cmd", "/c", "start", "cmd", "/k", startBat.absolutePath].execute(null, serverDir)
+        println "Server restart command executed."
+    }
+}
+// build 後に自動で reloadServer を実行
+tasks.build.finalizedBy(tasks.named("reloadServer"))

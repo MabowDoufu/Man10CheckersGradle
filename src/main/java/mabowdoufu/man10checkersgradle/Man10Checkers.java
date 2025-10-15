@@ -1,6 +1,9 @@
 package mabowdoufu.man10checkersgradle;
-
+//Man10Checkers.mcheckers.getLogger().info("join");
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
 public final class Man10Checkers extends JavaPlugin {
 
     /// board createを誰でもできるようにする
@@ -21,6 +24,13 @@ public final class Man10Checkers extends JavaPlugin {
         Config.LoadConfig();
         getCommand("mcheckers").setExecutor(new Commands());
         getLogger().info("This plugin is running");
+
+        getServer().getPluginManager().registerEvents(new Listener() {
+            @EventHandler
+            public void onClick(InventoryClickEvent event) {
+                getLogger().info(event.getView().getTitle() + "が押されました！");
+            }
+        }, this);
     }
 
     @Override

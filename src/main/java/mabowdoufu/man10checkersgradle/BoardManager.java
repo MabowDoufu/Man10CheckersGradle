@@ -57,7 +57,8 @@ public class BoardManager {
                 board.z1 = loc.getZ();
                 board.y = loc.getY();
                 state = CreateState.SET_X2;
-                return Config.prefix + "§r次に真上から見て右下のブロックを左クリックして下さい";
+                return Config.prefix + " " +
+                        "次に真上から見て右下のブロックを左クリックして下さい";
             }
             else if (state == CreateState.SET_X2){
                 if (board.y != loc.getY()) return Config.prefix + "§r1回目の指定と高さが違います。同じ高さのブロックを指定して下さい";

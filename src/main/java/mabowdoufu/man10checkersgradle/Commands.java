@@ -26,17 +26,18 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         //if (!sender.hasPermission("mcheckers.op")) return true;
+        BoardGameSys.ResetVars();
         switch (args.length){
             case 1:
                 if (args[0].equals("help")){
-                    sender.sendMessage(Config.prefix + "§r/mcheckers Board list : 開催中のリバーシのリストを表示");
+                    //sender.sendMessage(Config.prefix + "§r/mcheckers list : 開催中のリバーシのリストを表示");廃止
                     sender.sendMessage(Config.prefix + "§r/mcheckers start : リバーシを開始します");
                     sender.sendMessage(Config.prefix + "§r/mcheckers join [ボード名] : リバーシに参加します");
                     sender.sendMessage(Config.prefix + "§r/mcheckers open : リバーシの画面を再表示します（ゲーム参加時のみ有効）");
                     if (sender.hasPermission("mcheckers.op")){
                         sender.sendMessage(Config.prefix + "§r=== 管理者コマンド ===");
                         sender.sendMessage(Config.prefix + "§r/mcheckers [on/off] : システムを稼働/停止します");
-                        sender.sendMessage(Config.prefix + "§r/mcheckers Board create [名前] : ボードを作成します");
+                        //sender.sendMessage(Config.prefix + "§r/mcheckers Board create [名前] : ボードを作成します（廃止）");
                         sender.sendMessage(Config.prefix + "§r/mcheckers end [ボード名] : ゲームを強制終了します");
                     }
                 }
@@ -78,14 +79,18 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     boolean ExistBoard = false;
                     boolean IsJoining = false;
                     for (String BoardName : yml.getKeys(false)) {
-                        if (args[1].equals(BoardName)){
+                        if (sender.getName().equals(BoardName)){
                             ExistBoard = true;
                         }
-                        for (String joinning_uuid : yml.getStringList(BoardName + ".Players")) {
-                            if (sender_uuid.toString().equals(joinning_uuid)) {
-                                IsJoining = true;
+                        //同じ個所ここ含めて3つあり..ここだけ修正中
+                        if(yml.getList(BoardName + ".Players") !=null) {
+                            for (Player joinning_player : (List<Player>) yml.getList(BoardName + ".Players")) {
+                                if (sender_uuid.toString().equals(joinning_player.getName())) {
+                                    IsJoining = true;
+                                }
                             }
                         }
+                        //
                     }
                     if (IsJoining){
                         sender.sendMessage(Config.prefix + "§r別のボードでゲーム中は参加できません");
@@ -95,10 +100,19 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                         sender.sendMessage(Config.prefix + "§rあなたはすでにボードを開いています");
                         return true;
                     }
+                    mcheckers.getLogger().info("sender.toString():"+sender.toString());
                     BoardGameSys.ResetYml((sender).getName());
                     BoardGameSys.Recruiting = true;
                     BoardGameSys.Players.add((Player) sender);
+                    mcheckers.getLogger().info("BoardGameSys.Players.toString():"+BoardGameSys.Players.toString());
                     BoardGameSys.saveData((sender).getName());
+
+                    /// 以下検証用
+                    File gameyml2 = new File("plugins/Man10Checkers/game.yml");
+                    YamlConfiguration yml2 = YamlConfiguration.loadConfiguration(gameyml);
+                    mcheckers.getLogger().info("yml2.getList(sender.getName() + \".Players\").getFirst():"+yml2.getList(sender.getName() + ".Players").getFirst());
+                    mcheckers.getLogger().info("((Player) yml2.getList(sender.getName() + \".Players\").getFirst()).toString():"+ ((Player) yml2.getList(sender.getName() + ".Players").getFirst()).toString());
+                    Player p = (Player) yml2.getList(sender.getName() + ".Players").getFirst();
                     return true;
                 }
                 else if (args[0].equals("open")){
@@ -107,14 +121,18 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     File gameyml = new File("plugins/Man10Checkers/game.yml");
                     YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
                     for (String BoardName : yml.getKeys(false)) {
-                        for (String joinning_uuid : yml.getStringList(BoardName + ".Players")) {
-                            if (sender_uuid.toString().equals(joinning_uuid)) {
+                        for (Player joinning_player : (List<Player>) yml.getList(BoardName + ".Players")) {
+                            if (sender.getName().equals(joinning_player.getName())) {
                                 BoardGameSys.LoadData(BoardName);
                                 ((Player) sender).openInventory(BoardGameSys.getInv(""));
                                 return true;
                             }
                         }
                     }
+                    sender.sendMessage(Config.prefix + "あなたは試合中のゲームに参加していません");
+                    return true;
+                }
+                else if (args[0].equals("list")){
                     return true;
                 }
                 break;
@@ -130,13 +148,16 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     boolean IsJoining = false;
                     boolean ExistBoard = false;
                     for (String BoardName : yml.getKeys(false)) {
-                        if (args[1] == BoardName){
+                        if (args[1].equals(BoardName)){
                             ExistBoard = true;
+                            mcheckers.getLogger().info("BoardName:"+BoardName);
                         }
-                        for (String joinning_uuid : yml.getStringList(BoardName + ".Players"))
-                            if(sender_uuid.toString().equals(joinning_uuid)) {
+                        
+                        for (Player joinning_player : (List<Player>) yml.getList(BoardName + ".Players")) {
+                            if (sender.getName().equals(joinning_player.getName())) {
                                 IsJoining = true;
                             }
+                        }
                     }
                     if (IsJoining){
                         sender.sendMessage(Config.prefix + "§r別のボードでゲーム中は参加できません");
@@ -147,7 +168,7 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                         return true;
                     }
                     BoardGameSys.LoadData(args[1]);
-                    if (!BoardGameSys.DuringGame){
+                    if (!BoardGameSys.Recruiting){
                         sender.sendMessage(Config.prefix + "§rそのボードはプレイヤーを募集していません");
                         return true;
                     }
@@ -157,49 +178,28 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     BoardGameSys.DuringGame = true;
                     BoardGameSys.saveData(args[1]);
                     //gui開く処理
+                    /// ここまで到達
                     Inventory inv = BoardGameSys.getInv("");
+                    (BoardGameSys.Players.get(0)).openInventory(inv);
                     (BoardGameSys.Players.get(1)).openInventory(inv);
-                    (BoardGameSys.Players.get(2)).openInventory(inv);
                     return true;
                 }
                 else if (args[0].equals("end") && sender.hasPermission("mcheckers.op")){
                     File gameyml = new File("plugins/Man10Checkers/game.yml");
                     YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
-                    if (yml.getBoolean(".DuringGame")||yml.getBoolean(".Recruiting")){
-                        sender.sendMessage(Config.prefix + "§rそのボードはゲーム中ではありません");
+                    if(!yml.getKeys(false).contains(args[1])){
+                        sender.sendMessage(Config.prefix + "§r指定したボードは存在しません");
                         return true;
                     }
                     try{
-                        yml.set(args[1]+".Player",null);
-                        yml.set(args[1]+".DuringGame",null);
-                        yml.set(args[1]+".Recruiting",null);
-                        yml.set(args[1]+".Board",null);
-                        yml.set(args[1]+".IsKing",null);
+                        yml.set(args[1],null);
                         ///ゲーム強制終了処理を書く(events終わった後に書く)
+                        yml.save(gameyml);
                         sender.sendMessage(Config.prefix + "§r終了しました");
                     } catch (Exception e) {
                         e.printStackTrace();
                         sender.sendMessage(Config.prefix + "§rエラーが発生しました");
                     }
-                    return true;
-                }
-                break;
-            case 3:
-                if (args[0].equals("Board") && args[1].equals("create") && sender.hasPermission("mcheckers.op")){
-                    File gameyml = new File("plugins/Man10Checkers/game.yml");
-                    YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
-                    boolean ExistBoard = false;
-                    for (String BoardName : yml.getKeys(false)) {
-                        if (args[1] == BoardName){
-                            ExistBoard = true;
-                        }
-                    }
-                    if (ExistBoard){
-                        sender.sendMessage(Config.prefix + "§rその名前のボードはすでに存在します");
-                        return true;
-                    }
-                    BoardManager.tmp_board.put(((Player) sender).getUniqueId(), new BoardManager.TMP_Board(args[2], new BoardManager.Board(args[2], ((Player) sender).getWorld().getName())));
-                    sender.sendMessage(Config.prefix + "§r真上から見てボードの左上の端になるブロックを左クリックして下さい");
                     return true;
                 }
                 break;
@@ -212,38 +212,33 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         //if (!sender.hasPermission("mcheckers.op")) return List.of();
         if (args.length == 1){
-            if (sender.hasPermission("mcheckers.op")) return Arrays.asList("help", "start", "join", "on", "off", "Board", "end", "open", "abilities");
-            else return Arrays.asList("start", "join", "Board");
+            if (sender.hasPermission("mcheckers.op")) return Arrays.asList("help", "start", "join", "on", "off", "end", "open");
+            else return Arrays.asList("help","start", "join", "open");
         }
         else if (args.length == 2){
             File gameyml = new File("plugins/Man10Checkers/game.yml");
             YamlConfiguration yml = YamlConfiguration.loadConfiguration(gameyml);
-            List<String> Boardlist = null;
-            try{
-                Boardlist.addAll(yml.getKeys(false));
-            } catch (Exception e) {
-                e.printStackTrace();
-                sender.sendMessage(Config.prefix + "§rエラーが発生しました");
-            }
-            if (args[0].equals("join") || (args[0].equals("end") && sender.hasPermission("mcheckers.op"))){
+            if (args[0].equals("join")){
                 //Recruiting
                 List<String> Joinable_Boards = new ArrayList<String>();
                 for (String BoardName : yml.getKeys(false)) {
-                    for (Boolean recruiting : yml.getBooleanList(BoardName + ".Recruiting"))
-                        if(recruiting) {
+                        if(yml.getBoolean(BoardName + ".Recruiting")) {
                             Joinable_Boards.add(BoardName);
                         }
-                }
+                    }
                 return Joinable_Boards;
             }
-            else if (args[0].equals("Board")){
-                if (sender.hasPermission("mcheckers.op")) return Arrays.asList("list", "create");
-                else Collections.singletonList("list");
+            if (args[0].equals("end") && sender.hasPermission("mcheckers.op")){
+                List<String> BoardList = new ArrayList<String>();
+                for (String BoardName : yml.getKeys(false)) {
+                        BoardList.add(BoardName);
             }
+                return BoardList;
         }
         else if (args.length == 3){
             if (args[0].equals("Board") && args[1].equals("create") && sender.hasPermission("mcheckers.op")){
                 Collections.singletonList("[名前]");
+                }
             }
         }
         return List.of();

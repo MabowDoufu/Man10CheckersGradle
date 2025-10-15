@@ -26,49 +26,57 @@ public class BoardGameSys extends JavaPlugin{
 
     public static File f;
     public static YamlConfiguration yml;
-    public static int[][] Board = new int[8][8];
-    public static boolean[][] IsKing = new boolean[8][8];
+    public static int[][] Board = new int[6][9];
+    public static boolean[][] IsKing = new boolean[6][9];
     public static int PlayerPiece;
     public static boolean DuringGame;
     public static boolean Recruiting;
     public static int Turn;
     public static int Click;
-    public static List<Player> Players;
+    public static List<Player> Players = new ArrayList<>();
     public static int ErrorType;
-
     //のちのちsysから切り離し
+    public static int FirstClickCheck(int x1, int y1){
+        if ((((x1 % 2) + (y1 % 2) % 2) == 1)) return 1;
+        if (Board[x1][y1] == Turn) return 2;
+        return 0;
+    }
+    public static void ChangeTurn(){
+        Turn++;
+        if(Turn ==2) Turn = 0;
+    }
+    public static void ResetVars(){
+        Board = new int[6][9];
+        IsKing = new boolean[6][9];
+        Players = new ArrayList<>();
+    }
+
     public static void ResetYml(String Boardname) {
         f = new File("plugins/Man10Checkers/game.yml");
         yml = YamlConfiguration.loadConfiguration(f);
-        Board[1][0] = 1;
-        Board[3][0] = 1;
-        Board[5][0] = 1;
-        Board[7][0] = 1;
+        Board[0][0] = 1;
+        Board[2][0] = 1;
+        Board[4][0] = 1;
         Board[1][1] = 1;
         Board[3][1] = 1;
         Board[5][1] = 1;
-        Board[7][1] = 1;
-        Board[1][2] = 1;
-        Board[3][2] = 1;
-        Board[5][2] = 1;
-        Board[7][2] = 1;
-        Board[1][5] = 2;
-        Board[3][5] = 2;
-        Board[5][5] = 2;
-        Board[7][5] = 2;
-        Board[1][6] = 2;
-        Board[3][6] = 2;
-        Board[5][6] = 2;
-        Board[7][6] = 2;
+        Board[0][2] = 1;
+        Board[2][2] = 1;
+        Board[4][2] = 1;
+        Board[0][6] = 2;
+        Board[2][6] = 2;
+        Board[4][6] = 2;
         Board[1][7] = 2;
         Board[3][7] = 2;
         Board[5][7] = 2;
-        Board[7][7] = 2;
+        Board[0][8] = 2;
+        Board[2][8] = 2;
+        Board[4][8] = 2;
         yml.set(Boardname+ ".Board", Board);
         yml.set(Boardname+ ".IsKing", IsKing);
         yml.set(Boardname+ ".DuringGame", false);
         yml.set(Boardname+ ".Recruiting", false);
-        yml.set(Boardname+ ".Turn", 1);
+        yml.set(Boardname+ ".Turn", 0);
         yml.set(Boardname+ ".Click", 1);
         PlayerPiece =1;
         try {
@@ -81,14 +89,41 @@ public class BoardGameSys extends JavaPlugin{
     public static void LoadData(String Boardname) {
         f = new File("plugins/Man10Checkers/game.yml");
         yml = YamlConfiguration.loadConfiguration(f);
-        Board = (int[][]) yml.get(Boardname+".Board");
-        IsKing = (boolean[][]) yml.get(Boardname+".IsKing");
+        /// gpt----------------
+        // YAML から読み込んだオブジェクトを List<List<Integer>> として取得
+        List<List<Integer>> list2d = (List<List<Integer>>) yml.get(Boardname+".Board");
+
+        // int[][] に変換
+        int[][] board = new int[list2d.size()][list2d.get(0).size()];
+        for (int i = 0; i < list2d.size(); i++) {
+            for (int j = 0; j < list2d.get(i).size(); j++) {
+                board[i][j] = list2d.get(i).get(j);
+            }
+        }
+
+        // グローバル Board に代入
+        Board = board;
+        // YAML から読み込んだオブジェクトを List<List<Boolean>> として取得
+        List<List<Boolean>> list2d_2 = (List<List<Boolean>>) yml.get(Boardname+".IsKing");
+
+        // boolean[][] に変換
+        boolean[][] isKing = new boolean[list2d_2.size()][list2d_2.get(0).size()];
+        for (int i = 0; i < list2d_2.size(); i++) {
+            for (int j = 0; j < list2d_2.get(i).size(); j++) {
+                isKing[i][j] = list2d_2.get(i).get(j);
+            }
+        }
+
+        // グローバル IsKing に代入
+        IsKing = isKing;
+        /// gpt----------------
+        //Board = (int[][]) yml.get(Boardname+".Board");
+        //IsKing = (boolean[][]) yml.get(Boardname+".IsKing");
         DuringGame = yml.getBoolean(Boardname+".DuringGame");
         Recruiting = yml.getBoolean(Boardname+".Recruiting");
         Turn = yml.getInt(Boardname+".Turn");
         Click = yml.getInt(Boardname+".Click");
-        Players = (List<Player>) yml.get(Boardname+".Players");
-
+        Players = (List<Player>) yml.getList(Boardname+".Players");
     }
 
     public static void saveData(String Boardname) {
@@ -140,11 +175,12 @@ public class BoardGameSys extends JavaPlugin{
         Inventory inv;
 
         inv= Bukkit.createInventory(null,54,Config.prefix + title);
-        int i =0;
         int j =0;
         for(int[] BoardRow : Board){
+            int i =0;
             for (int Men : BoardRow){
-                int slot = (i%6 -1) + (int) floor((double) i /6) +1;
+                int slot = i + j*9;
+                /// 181行でエラー j or iが out of index
                 if(Men == 1 && !IsKing[j][i]) inv.setItem(slot,createGUIItem(BLACK_CONCRETE,"黒の駒",""));
                 if(Men == 2 && !IsKing[j][i]) inv.setItem(slot,createGUIItem(WHITE_CONCRETE,"白の駒",""));
                 if(Men == 1 && IsKing[j][i]) inv.setItem(slot,createGUIItem(BLACK_GLAZED_TERRACOTTA,"黒のキング",""));
@@ -347,7 +383,7 @@ public class BoardGameSys extends JavaPlugin{
         PlayerPiece = yml.getInt(Boardname +".Turn");
 
         //チェッカーで使用しないマスを選択
-        if ((((x1 % 2) + (y1 % 2) % 2) == 1) || (((x2 % 2) + (y2 % 2) % 2) == 1)) {
+        if ((((x2 % 2) + (y2 % 2) % 2) == 1)) {
             ErrorType =1;
             return;
         }
@@ -396,14 +432,12 @@ public class BoardGameSys extends JavaPlugin{
         CreateKing();
     }
     private static void CreateKing() {
-        if(Board[1][0]==2) IsKing[1][0] = true;
-        if(Board[3][0]==2) IsKing[3][0] = true;
-        if(Board[5][0]==2) IsKing[5][0] = true;
-        if(Board[7][0]==2) IsKing[7][0] = true;
-        if(Board[1][7]==1) IsKing[1][0] = true;
-        if(Board[3][7]==1) IsKing[3][0] = true;
-        if(Board[5][7]==1) IsKing[5][0] = true;
-        if(Board[7][7]==1) IsKing[7][0] = true;
+        if(Board[0][0]==2) IsKing[0][0] = true;
+        if(Board[2][0]==2) IsKing[2][0] = true;
+        if(Board[4][0]==2) IsKing[4][0] = true;
+        if(Board[0][8]==1) IsKing[0][8] = true;
+        if(Board[2][8]==1) IsKing[2][8] = true;
+        if(Board[4][8]==1) IsKing[4][8] = true;
     }
 
     public static int WinCheck(String Boardname) {
