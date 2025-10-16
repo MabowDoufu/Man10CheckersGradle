@@ -37,20 +37,26 @@ public class BoardGameSys extends JavaPlugin{
     public static int ErrorType;
     //のちのちsysから切り離し
     public static int FirstClickCheck(int x1, int y1){
+        Man10Checkers.mcheckers.getLogger().info("FirstClickCheck----");
+        Man10Checkers.mcheckers.getLogger().info("Turn:"+ Turn);
+        Man10Checkers.mcheckers.getLogger().info("Board[x1][y1]:" +Board[x1][y1]);
+        Man10Checkers.mcheckers.getLogger().info("FirstClickCheck---end-");
         if ((((x1 % 2) + (y1 % 2) % 2) == 1)) return 1;
-        if (Board[x1][y1] == Turn) return 2;
+        if (Board[x1][y1] != Turn) return 2;
         return 0;
     }
     public static void ChangeTurn(){
         Turn++;
-        if(Turn ==2) Turn = 0;
+        if(Turn ==3) Turn = 1;
     }
     public static void ResetVars(){
         Board = new int[6][9];
         IsKing = new boolean[6][9];
         Players = new ArrayList<>();
+        Turn = 1;
+        Click = 0;
     }
-
+        //x軸はinv左上から下方向　y軸は右方向
     public static void ResetYml(String Boardname) {
         f = new File("plugins/Man10Checkers/game.yml");
         yml = YamlConfiguration.loadConfiguration(f);
@@ -76,13 +82,13 @@ public class BoardGameSys extends JavaPlugin{
         yml.set(Boardname+ ".IsKing", IsKing);
         yml.set(Boardname+ ".DuringGame", false);
         yml.set(Boardname+ ".Recruiting", false);
-        yml.set(Boardname+ ".Turn", 0);
+        yml.set(Boardname+ ".Turn", 1);
         yml.set(Boardname+ ".Click", 1);
         PlayerPiece =1;
         try {
             yml.save(f);
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ignored) {
+
         }
     }
 
@@ -139,8 +145,7 @@ public class BoardGameSys extends JavaPlugin{
 
         try {
             yml.save(f);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
         }
     }
     public static void deleteData(String Boardname) {
@@ -149,8 +154,8 @@ public class BoardGameSys extends JavaPlugin{
         yml.set(Boardname, null);
         try {
             yml.save(f);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
+
         }
     }
     protected static ItemStack createGUIItem(final Material material, final String name, final String... lore){
@@ -162,10 +167,10 @@ public class BoardGameSys extends JavaPlugin{
         return item;
     }
     ///テキサスホールデムプラグインより
-    public static String getBoard(UUID uuid){
+    public static String getBoard(String player_name){
         for (String BoardName : yml.getKeys(false)) {
-            for (String joinning_uuid : yml.getStringList(BoardName + ".Players"))
-                if(uuid.toString().equals(joinning_uuid)) {
+            for (Player joinning_player : (List<Player>) yml.getList(BoardName + ".Players"))
+                if(player_name.equals(joinning_player.getName())) {
                     return BoardName;
                 }
         }
@@ -214,32 +219,37 @@ public class BoardGameSys extends JavaPlugin{
             enemypiece = 1;
         }
         try {
+            //out of bounds
+            Man10Checkers.mcheckers.getLogger().info("int x1:"+x1);
+            Man10Checkers.mcheckers.getLogger().info("int y1:"+y1);
             if (Board[x1 + xdirection][y1 + ydirection] == enemypiece && Board[x1 + 2 * xdirection][y1 + 2 * ydirection] == 0) {
+                Man10Checkers.mcheckers.getLogger().info("Jumpable true");
                 return true;
             }
-        } catch (ArrayIndexOutOfBoundsException e) {
-            e.printStackTrace();
-        }
+        } catch (ArrayIndexOutOfBoundsException ignored) {
 
+        }
+        Man10Checkers.mcheckers.getLogger().info("Jumpable false");
         return false;
     }
 
     private static void ContinuousMove(int x1, int y1) {
         List<Integer> Movable = new ArrayList<Integer>();
+        Man10Checkers.mcheckers.getLogger().info("ContinousMove");
         if (PlayerPiece == 1 || (PlayerPiece == 2 && IsKing[x1][y1])) {
             try {
                 if (SelectCorrectMove(x1, y1, x1 + 2, y1 + 2)) {
                     Movable.add(1);
                 }
-            } catch (ArrayIndexOutOfBoundsException e) {
-                e.printStackTrace();
+            } catch (ArrayIndexOutOfBoundsException ignored) {
+
             }
             try {
                 if (SelectCorrectMove(x1, y1, x1 - 2, y1 + 2)) {
                     Movable.add(2);
                 }
-            } catch (ArrayIndexOutOfBoundsException e) {
-                e.printStackTrace();
+            } catch (ArrayIndexOutOfBoundsException ignored) {
+
             }
         }
         if (PlayerPiece == 2 || (PlayerPiece == 1 && IsKing[x1][y1])) {
@@ -247,15 +257,15 @@ public class BoardGameSys extends JavaPlugin{
                 if (SelectCorrectMove(x1, y1, x1 + 2, y1 - 2)) {
                     Movable.add(3);
                 }
-            } catch (ArrayIndexOutOfBoundsException e) {
-                e.printStackTrace();
+            } catch (ArrayIndexOutOfBoundsException ignored) {
+
             }
             try {
                 if (SelectCorrectMove(x1, y1, x1 - 2, y1 - 2)) {
                     Movable.add(4);
                 }
-            } catch (ArrayIndexOutOfBoundsException e) {
-                e.printStackTrace();
+            } catch (ArrayIndexOutOfBoundsException ignored) {
+
             }
         }
         Random random = new Random();
@@ -378,13 +388,18 @@ public class BoardGameSys extends JavaPlugin{
 
     //駒をおけるか
     public static void BoardInput(String Boardname,int x1, int y1, int x2, int y2) {
+        Man10Checkers.mcheckers.getLogger().info("int x1:"+x1);
+        Man10Checkers.mcheckers.getLogger().info("int y1:"+y1);
+        Man10Checkers.mcheckers.getLogger().info("int x2:"+x2);
+        Man10Checkers.mcheckers.getLogger().info("int y2:"+y2);
         ErrorType =0;
         LoadData(Boardname);
         PlayerPiece = yml.getInt(Boardname +".Turn");
-
+        Man10Checkers.mcheckers.getLogger().info("BoardInput:1");
         //チェッカーで使用しないマスを選択
         if ((((x2 % 2) + (y2 % 2) % 2) == 1)) {
             ErrorType =1;
+            Man10Checkers.mcheckers.getLogger().info("BoardInput:2");
             return;
         }
 
@@ -394,18 +409,22 @@ public class BoardGameSys extends JavaPlugin{
         if (!SelectCorrectMove(x1, y1, x2, y2)) {
             //相手の駒を飛び越えられる手が存在します。飛び越えられる手を選択してください。
             ErrorType =2;
+            Man10Checkers.mcheckers.getLogger().info("BoardInput:3");
             return;
         }
 
         //
         if (abs(x1 - x2) == 1 && abs(y1 - y2) == 1) {
+            Man10Checkers.mcheckers.getLogger().info("BoardInput:4");
             if (Board[x2][y2] == PlayerPiece) {
                 Board[x1][y1] = 0;
                 IsKing[x2][y2] = IsKing[x1][y1];
                 Board[x2][y2] = PlayerPiece;
                 IsKing[x1][y1] = false;
+                Man10Checkers.mcheckers.getLogger().info("BoardInput:5");
             }
         } else if (abs(x1 - x2) == 2 && abs(y1 - y2) == 2) {
+            Man10Checkers.mcheckers.getLogger().info("BoardInput:6");
             if (IsJumpable(x1, y1, x2 - x1, y2 - y1)) {
                 Board[x1][y1] = 0;
                 IsKing[x2][y2] = IsKing[x1][y1];
@@ -414,20 +433,23 @@ public class BoardGameSys extends JavaPlugin{
 
                 Board[x1+(x2 - x1)/2][y1+(y1 - y2)/2] = 0;
                 IsKing[x1+(x2 - x1)/2][y1+(y1 - y2)/2] = false;
-
+                Man10Checkers.mcheckers.getLogger().info("BoardInput:7");
                 ContinuousMove(x2, y2);
             }
         } else {
             //最初に選択した駒の一つ斜めの駒か、相手の駒を飛び越えられる場合は二つ斜め前の駒を選択してください。
             ErrorType =3;
+            Man10Checkers.mcheckers.getLogger().info("BoardInput:8");
             return;
         }
 
         saveData(Boardname);
         if(PlayerPiece ==1) {
             PlayerPiece =2;
+            Man10Checkers.mcheckers.getLogger().info("BoardInput:9");
         }else {
             PlayerPiece =1;
+            Man10Checkers.mcheckers.getLogger().info("BoardInput:10");
         }
         CreateKing();
     }
@@ -472,7 +494,7 @@ public class BoardGameSys extends JavaPlugin{
 
         if(!ExistJumpMove(1)) return 2;
         if(!ExistJumpMove(2)) return 1;
-
+        //jumpmoveだけでなく通常移動ができるか否かもゲーム終了かの判断に加える
         return 0;
     }
 }

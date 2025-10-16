@@ -18,9 +18,11 @@ public final class Man10Checkers extends JavaPlugin {
     ///
     public static JavaPlugin mcheckers;
     public static mabowdoufu.man10checkersgradle.BoardGameSys bgs;
+    private final Events events = new Events(this);
     @Override
     public void onEnable() {
         mcheckers = this;
+        events.register();
         Config.LoadConfig();
         getCommand("mcheckers").setExecutor(new Commands());
         getLogger().info("This plugin is running");
