@@ -8,7 +8,6 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,11 +58,12 @@ public class Events implements Listener {
         if(e.getRawSlot()== -999) return;
         if(e.getRawSlot() > 53) return;
         e.setCancelled(true);
+        Man10Checkers.mcheckers.getLogger().info("Turn:"+String.valueOf(BoardGameSys.Turn));
 
         Man10Checkers.mcheckers.getLogger().info("invevent2");
         Player Clicker = (Player) e.getWhoClicked();
         LoadData(getBoard(e.getWhoClicked().getName()));
-        if(Clicker != Players.get(Turn)){
+        if(Clicker != Players.get(Turn-1)){
             Man10Checkers.mcheckers.getLogger().info("invevent3");
             return;
         }
@@ -84,7 +84,7 @@ public class Events implements Listener {
         LoadData(CurrentBoard);
 
         if(Click == 0){
-            Click++;
+            Man10Checkers.mcheckers.getLogger().info("Click0--------------------");
             y1 = e.getRawSlot() % 9;
             x1 = (e.getRawSlot() - y1)/9;
             switch (FirstClickCheck(x1,y1)){
@@ -98,33 +98,56 @@ public class Events implements Listener {
                     return;
                 default:
                     Man10Checkers.mcheckers.getLogger().info("FirstCheckNOError");
+                    Click = 1;
+
                     saveData(CurrentBoard);
-                    Man10Checkers.mcheckers.getLogger().info("Click0");
+                    Man10Checkers.mcheckers.getLogger().info("click sets 1");
             }
         }else if(Click == 1){
-            Click =0;
-            x2 = e.getRawSlot() % 9;
-            y2 = (e.getRawSlot() - x2)/9;
+            Man10Checkers.mcheckers.getLogger().info("Click1--------------------");
+            y2 = e.getRawSlot() % 9;
+            x2 = (e.getRawSlot() - y2)/9;
             //作業メモ： error等の挙動をまず確認・二回目のマス選択で、離れたマスを選択した場合に即returnさせる・warning消す
             BoardInput(CurrentBoard,x1,y1,x2,y2);
-            Man10Checkers.mcheckers.getLogger().info("Click1");
+
             switch (ErrorType){
                 case 1:
-                    Clicker.openInventory(SetLoreMessage("Error:チェッカーで使用しないマスを選択しています",e.getInventory()));
+                    Clicker.openInventory(SetLoreMessage("Error:チェッカーで使用しないマスを選択しています。",e.getInventory()));
                     Man10Checkers.mcheckers.getLogger().info("2ndCheckError1");
-                    break;
+                    LoadData(CurrentBoard);
+                    Click =0;
+                    saveData(CurrentBoard);
+                    return;
                 case 2:
                     Clicker.openInventory(SetLoreMessage("Error:相手の駒を飛び越えられる手が存在します。飛び越えられる手を選択してください。",e.getInventory()));
                     Man10Checkers.mcheckers.getLogger().info("2ndCheckError2");
-                    break;
+                    LoadData(CurrentBoard);
+                    Click =0;
+                    saveData(CurrentBoard);
+                    return;
                 case 3:
                     Clicker.openInventory(SetLoreMessage("Error:最初に選択した駒の一つ斜めの駒か、相手の駒を飛び越えられる場合は二つ斜め前の駒を選択してください。",e.getInventory()));
                     Man10Checkers.mcheckers.getLogger().info("2ndCheckError3");
-                    break;
+                    LoadData(CurrentBoard);
+                    Click =0;
+                    saveData(CurrentBoard);
+                    return;
+                case 4:
+                    Clicker.openInventory(SetLoreMessage("Error:その方向に駒は進めません。",e.getInventory()));
+                    Man10Checkers.mcheckers.getLogger().info("2ndCheckError4");
+                    LoadData(CurrentBoard);
+                    Click =0;
+                    saveData(CurrentBoard);
+                    return;
                 default:
                     Man10Checkers.mcheckers.getLogger().info("2ndCheckNoError");
                     ChangeTurn();
+                    Man10Checkers.mcheckers.getLogger().info("click sets 0");
+                    Click =0;
+
                     saveData(CurrentBoard);
+                    Players.get(0).openInventory(getInv(""));
+                    Players.get(1).openInventory(getInv(""));
                     break;
             }
             //invのタイトル変更方法(pass

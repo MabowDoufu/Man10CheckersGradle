@@ -5,7 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
-
+import static mabowdoufu.man10checkersgradle.Man10Checkers.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -19,7 +19,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
-
 public class BoardGameSys extends JavaPlugin{
     // 盤面情報
     // 0:未設置, 1:黒 2:白
@@ -55,6 +54,8 @@ public class BoardGameSys extends JavaPlugin{
         Players = new ArrayList<>();
         Turn = 1;
         Click = 0;
+        logg("Click sets 0");
+
     }
         //x軸はinv左上から下方向　y軸は右方向
     public static void ResetYml(String Boardname) {
@@ -129,6 +130,7 @@ public class BoardGameSys extends JavaPlugin{
         Recruiting = yml.getBoolean(Boardname+".Recruiting");
         Turn = yml.getInt(Boardname+".Turn");
         Click = yml.getInt(Boardname+".Click");
+        logg("Click sets "+ Click);
         Players = (List<Player>) yml.getList(Boardname+".Players");
     }
 
@@ -213,40 +215,50 @@ public class BoardGameSys extends JavaPlugin{
     //directionは1または-1のみをとる
     private static boolean IsJumpable(int x1, int y1, int xdirection, int ydirection) {
         int enemypiece;
-        if (PlayerPiece == 1) {
+        if (Turn == 1) {
             enemypiece = 2;
         } else {
             enemypiece = 1;
         }
         try {
             //out of bounds
-            Man10Checkers.mcheckers.getLogger().info("int x1:"+x1);
-            Man10Checkers.mcheckers.getLogger().info("int y1:"+y1);
-            if (Board[x1 + xdirection][y1 + ydirection] == enemypiece && Board[x1 + 2 * xdirection][y1 + 2 * ydirection] == 0) {
+
+            if (Board[x1 + xdirection][y1 + ydirection] == enemypiece &&
+                    Board[x1 + 2 * xdirection][y1 + 2 * ydirection] == 0) {
+                logg(String.valueOf("2 * xdirection:"+(2 * xdirection)));
+                logg(String.valueOf("2 * ydirection:"+(2 * ydirection)));
+                logg(String.valueOf("enemypiece:"+(enemypiece)));
+                logg(String.valueOf("Turn:"+(Turn)));
+                logg(String.valueOf("Board[x1 + xdirection][y1 + ydirection] == enemypiece"+(Board[x1 + xdirection][y1 + ydirection] ==enemypiece)));
+                logg(String.valueOf("Board[x1 + 2 * xdirection][y1 + 2 * ydirection] == 0"+(Board[x1 + 2 * xdirection][y1 + 2 * ydirection] == 0)));
                 Man10Checkers.mcheckers.getLogger().info("Jumpable true");
                 return true;
             }
         } catch (ArrayIndexOutOfBoundsException ignored) {
 
         }
-        Man10Checkers.mcheckers.getLogger().info("Jumpable false");
+        //Man10Checkers.mcheckers.getLogger().info("Jumpable false");
         return false;
     }
 
     private static void ContinuousMove(int x1, int y1) {
         List<Integer> Movable = new ArrayList<Integer>();
-        Man10Checkers.mcheckers.getLogger().info("ContinousMove");
+        Man10Checkers.mcheckers.getLogger().info("ContinousMove start");
+        Man10Checkers.mcheckers.getLogger().info("x1:"+x1);
+        Man10Checkers.mcheckers.getLogger().info("y1:"+y1);
         if (PlayerPiece == 1 || (PlayerPiece == 2 && IsKing[x1][y1])) {
             try {
-                if (SelectCorrectMove(x1, y1, x1 + 2, y1 + 2)) {
+                if (SelectCorrectMove(x1, y1, x1 + 2, y1 + 2) && IsJumpable(x1,y1,1,1)) {
                     Movable.add(1);
+                    Man10Checkers.mcheckers.getLogger().info("右下追加");
                 }
             } catch (ArrayIndexOutOfBoundsException ignored) {
 
             }
             try {
-                if (SelectCorrectMove(x1, y1, x1 - 2, y1 + 2)) {
+                if (SelectCorrectMove(x1, y1, x1 - 2, y1 + 2) && IsJumpable(x1,y1,-1,1)) {
                     Movable.add(2);
+                    Man10Checkers.mcheckers.getLogger().info("右上追加");
                 }
             } catch (ArrayIndexOutOfBoundsException ignored) {
 
@@ -254,62 +266,97 @@ public class BoardGameSys extends JavaPlugin{
         }
         if (PlayerPiece == 2 || (PlayerPiece == 1 && IsKing[x1][y1])) {
             try {
-                if (SelectCorrectMove(x1, y1, x1 + 2, y1 - 2)) {
+                if (SelectCorrectMove(x1, y1, x1 + 2, y1 - 2) && IsJumpable(x1,y1,1,-1)) {
                     Movable.add(3);
+                    Man10Checkers.mcheckers.getLogger().info("左下追加");
                 }
             } catch (ArrayIndexOutOfBoundsException ignored) {
 
             }
             try {
-                if (SelectCorrectMove(x1, y1, x1 - 2, y1 - 2)) {
+                if (SelectCorrectMove(x1, y1, x1 - 2, y1 - 2) && IsJumpable(x1,y1,-1,-1)) {
                     Movable.add(4);
+                    Man10Checkers.mcheckers.getLogger().info("左上追加");
                 }
             } catch (ArrayIndexOutOfBoundsException ignored) {
 
             }
         }
         Random random = new Random();
-        int movePattern = Movable.get(random.nextInt(Movable.size() - 1)); // 0からMovable.size()-1までの整数を生成
+        logg("Movable.toString():"+Movable.toString());
+        logg(String.valueOf(Movable.size() - 1));
+        if(Movable.isEmpty()) return;
+        int movePattern;
+        if(Movable.size() == 1){
+            movePattern = Movable.getFirst();
+        }else{
+            movePattern = Movable.get(random.nextInt(Movable.size() - 1)); // 0からMovable.size()-1までの整数を生成
+        }
         if (movePattern == 1) {
-            IsKing[x1 + 2][y1 + 2] = IsKing[x1][y1];
-            Board[x1][y1] = 0;
-            Board[x1 + 2][y1 + 2] = PlayerPiece;
-            IsKing[x1][y1] = false;
+            try {
+                Man10Checkers.mcheckers.getLogger().info("右下");
+                logg2(Board);
 
-            Board[x1+1][y1+1] = 0;
-            IsKing[x1+1][y1+1] = false;
+                IsKing[x1 + 2][y1 + 2] = IsKing[x1][y1];
+                Board[x1][y1] = 0;
+                Board[x1 + 2][y1 + 2] = PlayerPiece;
+                IsKing[x1][y1] = false;
 
-            ContinuousMove(x1 + 2, y1 + 2);
+                Board[x1 + 1][y1 + 1] = 0;
+                IsKing[x1 + 1][y1 + 1] = false;
+                logg2(Board);
+                ContinuousMove(x1 + 2, y1 + 2);
+            } catch (Exception ignored) {
+
+            }
         } else if (movePattern == 2) {
-            IsKing[x1 + 2][y1 + 2] = IsKing[x1][y1];
-            Board[x1][y1] = 0;
-            Board[x1 - 2][y1 + 2] = PlayerPiece;
-            IsKing[x1][y1] = false;
+            try {
+                Man10Checkers.mcheckers.getLogger().info("右上");
+                logg2(Board);
+                IsKing[x1 - 2][y1 + 2] = IsKing[x1][y1];
+                Board[x1][y1] = 0;
+                Board[x1 - 2][y1 + 2] = PlayerPiece;
+                IsKing[x1][y1] = false;
 
-            Board[x1-1][y1+1] = 0;
-            IsKing[x1-1][y1+1] = false;
+                Board[x1 - 1][y1 + 1] = 0;
+                IsKing[x1 - 1][y1 + 1] = false;
+                logg2(Board);
+                ContinuousMove(x1 - 2, y1 + 2);
+            } catch (Exception ignored) {
 
-            ContinuousMove(x1 - 2, y1 + 2);
+            }
         } else if (movePattern == 3) {
-            IsKing[x1 + 2][y1 + 2] = IsKing[x1][y1];
-            Board[x1][y1] = 0;
-            Board[x1 + 2][y1 - 2] = PlayerPiece;
-            IsKing[x1][y1] = false;
+            try {
+                Man10Checkers.mcheckers.getLogger().info("左下");
+                logg2(Board);
+                IsKing[x1 + 2][y1 - 2] = IsKing[x1][y1];
+                Board[x1][y1] = 0;
+                Board[x1 + 2][y1 - 2] = PlayerPiece;
+                IsKing[x1][y1] = false;
 
-            Board[x1+1][y1-1] = 0;
-            IsKing[x1+1][y1-1] = false;
+                Board[x1 + 1][y1 - 1] = 0;
+                IsKing[x1 + 1][y1 - 1] = false;
+                logg2(Board);
+                ContinuousMove(x1 + 2, y1 - 2);
+            } catch (Exception ignored){
 
-            ContinuousMove(x1 + 2, y1 - 2);
+            }
         } else if (movePattern == 4) {
-            IsKing[x1 + 2][y1 + 2] = IsKing[x1][y1];
-            Board[x1][y1] = 0;
-            Board[x1 - 2][y1 - 2] = PlayerPiece;
-            IsKing[x1][y1] = false;
+            try {
+                Man10Checkers.mcheckers.getLogger().info("左上");
+                logg2(Board);
+                IsKing[x1 - 2][y1 - 2] = IsKing[x1][y1];
+                Board[x1][y1] = 0;
+                Board[x1 - 2][y1 - 2] = PlayerPiece;
+                IsKing[x1][y1] = false;
 
-            Board[x1-1][y1-1] = 0;
-            IsKing[x1-1][y1-1] = false;
+                Board[x1 - 1][y1 - 1] = 0;
+                IsKing[x1 - 1][y1 - 1] = false;
+                logg2(Board);
+                ContinuousMove(x1 - 2, y1 - 2);
+            } catch (Exception ignored){
 
-            ContinuousMove(x1 - 2, y1 - 2);
+            }
         }
     }
 
@@ -324,32 +371,32 @@ public class BoardGameSys extends JavaPlugin{
         }
         //placeableチェック
         int checkX = 0;
-        int checkY = 0;
         boolean exist = false;
         for (int[] row : Board) {
+            int checkY = 0;
             for (int piece : row) {
                 if (piece == PlayerPiece) {
                     if (IsJumpable(checkX, checkY, 1, 1)) {
                         exist = true;
-                        if ((checkX == x1) && (checkY == y1)) {
+                        if (((checkX == x1) && (checkY == y1) && (x2-x1==2) && (y2-y1==2))&&(Turn== 1|| IsKing[x1][y1])) {
                             return true;
                         }
                     }
                     if (IsJumpable(checkX, checkY, -1, 1)) {
                         exist = true;
-                        if ((checkX == x1) && (checkY == y1)) {
+                        if (((checkX == x1) && (checkY == y1) && (x2-x1==-2) && (y2-y1==2))&&(Turn== 1|| IsKing[x1][y1])) {
                             return true;
                         }
                     }
                     if (IsJumpable(checkX, checkY, 1, -1)) {
                         exist = true;
-                        if ((checkX == x1) && (checkY == y1)) {
+                        if (((checkX == x1) && (checkY == y1) && (x2-x1==2) && (y2-y1==-2))&&(Turn== 2|| IsKing[x1][y1])) {
                             return true;
                         }
                     }
                     if (IsJumpable(checkX, checkY, -1, -1)) {
                         exist = true;
-                        if ((checkX == x1) && (checkY == y1)) {
+                        if (((checkX == x1) && (checkY == y1) && (x2-x1==-2) && (y2-y1==-2))&&(Turn== 2|| IsKing[x1][y1])) {
                             return true;
                         }
                     }
@@ -360,12 +407,12 @@ public class BoardGameSys extends JavaPlugin{
         }
         return !exist;
     }
-    private static boolean ExistJumpMove(int PlayerPiece2) {
+    private static boolean ExistJumpMove(int PlayerPiece) {
         int checkX = 0;
-        int checkY = 0;
         for (int[] row : Board) {
+            int checkY = 0;
             for (int piece : row) {
-                if (piece == PlayerPiece2) {
+                if (piece == PlayerPiece) {
                     if (IsJumpable(checkX, checkY, 1, 1)) {
                         return true;
                     }
@@ -386,6 +433,51 @@ public class BoardGameSys extends JavaPlugin{
         return false;
     }
 
+    private static boolean ExistOneMove(int PlayerPiece) {
+        int checkX = 0;
+
+        Man10Checkers.mcheckers.getLogger().info("ExistOneMove");
+        for (int[] row : Board) {
+            int checkY = 0;
+            //Man10Checkers.mcheckers.getLogger().info("row:"+ Arrays.toString(row));
+            for (int piece : row) {
+                //Man10Checkers.mcheckers.getLogger().info("piece:"+piece);
+                //Man10Checkers.mcheckers.getLogger().info("PlayerPiece:"+PlayerPiece);
+                //Man10Checkers.mcheckers.getLogger().info("((checkX+checkY) %2 == 0)):"+((checkX+checkY) %2 == 0));
+                //Man10Checkers.mcheckers.getLogger().info("check x,y="+checkX+","+checkY);
+                if (piece == PlayerPiece && ((checkX+checkY) %2 == 0)) {
+                    if (IsOneMovable(checkX, checkY, 1, 1)) {
+                        //Man10Checkers.mcheckers.getLogger().info("1 1");
+                        return true;
+                    }
+                    if (IsOneMovable(checkX, checkY, -1, 1)) {
+                        //Man10Checkers.mcheckers.getLogger().info("-1 1");
+                        return true;
+                    }
+                    if (IsOneMovable(checkX, checkY, 1, -1)) {
+                        //Man10Checkers.mcheckers.getLogger().info("1 -1");
+                        return true;
+                    }
+                    if (IsOneMovable(checkX, checkY, -1, -1)) {
+                        //Man10Checkers.mcheckers.getLogger().info("-1 -1");
+                        return true;
+                    }
+                }
+                checkY++;
+            }
+            checkX++;
+        }
+        return false;
+    }
+    private static boolean IsOneMovable(int x,int y,int xdirection,int ydirection){
+        try{
+            Man10Checkers.mcheckers.getLogger().info(String.valueOf(Board[x + xdirection][y + ydirection]));
+            return Board[x + xdirection][y + ydirection] == 0;
+        }catch(ArrayIndexOutOfBoundsException e){
+            e.printStackTrace();
+            return false;
+        }
+    }
     //駒をおけるか
     public static void BoardInput(String Boardname,int x1, int y1, int x2, int y2) {
         Man10Checkers.mcheckers.getLogger().info("int x1:"+x1);
@@ -416,7 +508,7 @@ public class BoardGameSys extends JavaPlugin{
         //
         if (abs(x1 - x2) == 1 && abs(y1 - y2) == 1) {
             Man10Checkers.mcheckers.getLogger().info("BoardInput:4");
-            if (Board[x2][y2] == PlayerPiece) {
+            if (Board[x1][y1] == PlayerPiece) {
                 Board[x1][y1] = 0;
                 IsKing[x2][y2] = IsKing[x1][y1];
                 Board[x2][y2] = PlayerPiece;
@@ -425,14 +517,17 @@ public class BoardGameSys extends JavaPlugin{
             }
         } else if (abs(x1 - x2) == 2 && abs(y1 - y2) == 2) {
             Man10Checkers.mcheckers.getLogger().info("BoardInput:6");
-            if (IsJumpable(x1, y1, x2 - x1, y2 - y1)) {
+            if (IsJumpable(x1, y1, (x2 - x1)/2, (y2 - y1)/2)) {
                 Board[x1][y1] = 0;
                 IsKing[x2][y2] = IsKing[x1][y1];
                 Board[x2][y2] = PlayerPiece;
                 IsKing[x1][y1] = false;
 
-                Board[x1+(x2 - x1)/2][y1+(y1 - y2)/2] = 0;
-                IsKing[x1+(x2 - x1)/2][y1+(y1 - y2)/2] = false;
+                Board[x1+(x2 - x1)/2][y1+(y2 - y1)/2] = 0;
+                IsKing[x1+(x2 - x1)/2][y1+(y2 - y1)/2] = false;
+
+                saveData(Boardname);
+                logg2(Board);
                 Man10Checkers.mcheckers.getLogger().info("BoardInput:7");
                 ContinuousMove(x2, y2);
             }
@@ -492,8 +587,8 @@ public class BoardGameSys extends JavaPlugin{
         }
         if (!ExistWhiteMen) return 1;
 
-        if(!ExistJumpMove(1)) return 2;
-        if(!ExistJumpMove(2)) return 1;
+        if(!ExistJumpMove(1) && !ExistOneMove(1)) return 2;
+        if(!ExistJumpMove(2) && !ExistOneMove(2)) return 1;
         //jumpmoveだけでなく通常移動ができるか否かもゲーム終了かの判断に加える
         return 0;
     }

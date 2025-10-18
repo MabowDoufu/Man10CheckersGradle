@@ -4,17 +4,24 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+
+import java.util.Arrays;
+
 public final class Man10Checkers extends JavaPlugin {
 
-    /// board createを誰でもできるようにする
-    ///yml:ボード名は主催者のユーザー名を自動設定
-    /// Recruiting状態に応じたjoinコマンド補完
-    /// join処理
-    ///ボード開始時の両者gyi表示
-    ///gui中断時の再オープンコマンド
-    /// ---ここまでやった
-    ///gui上でのインプットアウトプット
+    /// tasklist
     ///
+    /// 未対策
+    ///
+    /// 間違った手を2回目のクリックで押したのにclick=0にならないことの対処
+    ///
+    /// ---
+    /// 対処済み未テスト
+    ///
+    ///
+    ///
+    /// 確認すること/作業
+    /// clickの値書き込んでるところに全部p.logつける→デバッグ
     ///
     public static JavaPlugin mcheckers;
     public static mabowdoufu.man10checkersgradle.BoardGameSys bgs;
@@ -41,4 +48,14 @@ public final class Man10Checkers extends JavaPlugin {
         getLogger().info("This plugin has stopped running");
 
     }
+
+    public static void logg(String string){
+        Man10Checkers.mcheckers.getLogger().info(string);
+    }
+    public static void logg2(int[][] board){
+        for(int[] b : board){
+            Man10Checkers.mcheckers.getLogger().info(Arrays.toString(b));
+        }
+    }
+
 }
