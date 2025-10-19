@@ -34,6 +34,7 @@ public class BoardGameSys extends JavaPlugin{
     public static int Click;
     public static List<Player> Players = new ArrayList<>();
     public static int ErrorType;
+    public static int RestTurn = 20;
     //のちのちsysから切り離し
     public static int FirstClickCheck(int x1, int y1){
         Man10Checkers.mcheckers.getLogger().info("FirstClickCheck----");
@@ -61,6 +62,10 @@ public class BoardGameSys extends JavaPlugin{
     public static void ResetYml(String Boardname) {
         f = new File("plugins/Man10Checkers/game.yml");
         yml = YamlConfiguration.loadConfiguration(f);
+        Board = new int[6][9];
+        IsKing = new boolean[6][9];
+        Players = new ArrayList<>();
+        RestTurn = 20;
         Board[0][0] = 1;
         Board[2][0] = 1;
         Board[4][0] = 1;
@@ -79,16 +84,19 @@ public class BoardGameSys extends JavaPlugin{
         Board[0][8] = 2;
         Board[2][8] = 2;
         Board[4][8] = 2;
+        logg("DuringGame set false");
         yml.set(Boardname+ ".Board", Board);
         yml.set(Boardname+ ".IsKing", IsKing);
         yml.set(Boardname+ ".DuringGame", false);
         yml.set(Boardname+ ".Recruiting", false);
         yml.set(Boardname+ ".Turn", 1);
         yml.set(Boardname+ ".Click", 1);
+        yml.set(Boardname+ ".RestTurn", RestTurn);
         PlayerPiece =1;
+
         try {
             yml.save(f);
-        } catch (IOException ignored) {
+        } catch (IOException e) {
 
         }
     }
@@ -126,11 +134,13 @@ public class BoardGameSys extends JavaPlugin{
         /// gpt----------------
         //Board = (int[][]) yml.get(Boardname+".Board");
         //IsKing = (boolean[][]) yml.get(Boardname+".IsKing");
+        logg("DuringGameVar set "+ yml.getBoolean(Boardname+".Recruiting"));
         DuringGame = yml.getBoolean(Boardname+".DuringGame");
         Recruiting = yml.getBoolean(Boardname+".Recruiting");
         Turn = yml.getInt(Boardname+".Turn");
         Click = yml.getInt(Boardname+".Click");
         logg("Click sets "+ Click);
+        RestTurn = yml.getInt(RestTurn+".RestTurn");
         Players = (List<Player>) yml.getList(Boardname+".Players");
     }
 
@@ -139,15 +149,17 @@ public class BoardGameSys extends JavaPlugin{
         yml = YamlConfiguration.loadConfiguration(f);
         yml.set(Boardname+".Board", Board);
         yml.set(Boardname+".IsKing", IsKing);
+        logg("DuringGame set"+DuringGame);
         yml.set(Boardname+".DuringGame", DuringGame);
         yml.set(Boardname+".Recruiting", Recruiting);
         yml.set(Boardname+".Turn", Turn);
         yml.set(Boardname+".Click", Click);
         yml.set(Boardname+".Players", Players);
-
+        yml.set(Boardname+".RestTurn", RestTurn);
         try {
             yml.save(f);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
     public static void deleteData(String Boardname) {
@@ -156,8 +168,8 @@ public class BoardGameSys extends JavaPlugin{
         yml.set(Boardname, null);
         try {
             yml.save(f);
-        } catch (Exception ignored) {
-
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
     protected static ItemStack createGUIItem(final Material material, final String name, final String... lore){
@@ -234,7 +246,7 @@ public class BoardGameSys extends JavaPlugin{
                 Man10Checkers.mcheckers.getLogger().info("Jumpable true");
                 return true;
             }
-        } catch (ArrayIndexOutOfBoundsException ignored) {
+        } catch (ArrayIndexOutOfBoundsException e) {
 
         }
         //Man10Checkers.mcheckers.getLogger().info("Jumpable false");
@@ -252,7 +264,7 @@ public class BoardGameSys extends JavaPlugin{
                     Movable.add(1);
                     Man10Checkers.mcheckers.getLogger().info("右下追加");
                 }
-            } catch (ArrayIndexOutOfBoundsException ignored) {
+            } catch (ArrayIndexOutOfBoundsException e) {
 
             }
             try {
@@ -260,7 +272,7 @@ public class BoardGameSys extends JavaPlugin{
                     Movable.add(2);
                     Man10Checkers.mcheckers.getLogger().info("右上追加");
                 }
-            } catch (ArrayIndexOutOfBoundsException ignored) {
+            } catch (ArrayIndexOutOfBoundsException e) {
 
             }
         }
@@ -270,7 +282,7 @@ public class BoardGameSys extends JavaPlugin{
                     Movable.add(3);
                     Man10Checkers.mcheckers.getLogger().info("左下追加");
                 }
-            } catch (ArrayIndexOutOfBoundsException ignored) {
+            } catch (ArrayIndexOutOfBoundsException e) {
 
             }
             try {
@@ -278,7 +290,7 @@ public class BoardGameSys extends JavaPlugin{
                     Movable.add(4);
                     Man10Checkers.mcheckers.getLogger().info("左上追加");
                 }
-            } catch (ArrayIndexOutOfBoundsException ignored) {
+            } catch (ArrayIndexOutOfBoundsException e) {
 
             }
         }
@@ -306,8 +318,8 @@ public class BoardGameSys extends JavaPlugin{
                 IsKing[x1 + 1][y1 + 1] = false;
                 logg2(Board);
                 ContinuousMove(x1 + 2, y1 + 2);
-            } catch (Exception ignored) {
-
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         } else if (movePattern == 2) {
             try {
@@ -322,8 +334,8 @@ public class BoardGameSys extends JavaPlugin{
                 IsKing[x1 - 1][y1 + 1] = false;
                 logg2(Board);
                 ContinuousMove(x1 - 2, y1 + 2);
-            } catch (Exception ignored) {
-
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         } else if (movePattern == 3) {
             try {
@@ -338,7 +350,7 @@ public class BoardGameSys extends JavaPlugin{
                 IsKing[x1 + 1][y1 - 1] = false;
                 logg2(Board);
                 ContinuousMove(x1 + 2, y1 - 2);
-            } catch (Exception ignored){
+            } catch (Exception e){
 
             }
         } else if (movePattern == 4) {
@@ -354,7 +366,7 @@ public class BoardGameSys extends JavaPlugin{
                 IsKing[x1 - 1][y1 - 1] = false;
                 logg2(Board);
                 ContinuousMove(x1 - 2, y1 - 2);
-            } catch (Exception ignored){
+            } catch (Exception e){
 
             }
         }
@@ -376,28 +388,44 @@ public class BoardGameSys extends JavaPlugin{
             int checkY = 0;
             for (int piece : row) {
                 if (piece == PlayerPiece) {
-                    if (IsJumpable(checkX, checkY, 1, 1)) {
-                        exist = true;
-                        if (((checkX == x1) && (checkY == y1) && (x2-x1==2) && (y2-y1==2))&&(Turn== 1|| IsKing[x1][y1])) {
-                            return true;
-                        }
+                    if(Turn ==1 || IsKing[checkX][checkY]) {
+                            if (IsJumpable(checkX, checkY, 1, 1)) {
+                                exist = true;
+                                logg("checkX:" + checkX);
+                                logg("checkY:" + checkY);
+                                logg("1 1");
+                                if (((checkX == x1) && (checkY == y1) && (x2 - x1 == 2) && (y2 - y1 == 2)) && (Turn == 1 || IsKing[x1][y1])) {
+                                    return true;
+                                }
+                            }
+                            if (IsJumpable(checkX, checkY, -1, 1)) {
+                                exist = true;
+                                logg("checkX:" + checkX);
+                                logg("checkY:" + checkY);
+                                logg("-1 1");
+                                if (((checkX == x1) && (checkY == y1) && (x2 - x1 == -2) && (y2 - y1 == 2)) && (Turn == 1 || IsKing[x1][y1])) {
+                                    return true;
+                                }
+                            }
                     }
-                    if (IsJumpable(checkX, checkY, -1, 1)) {
-                        exist = true;
-                        if (((checkX == x1) && (checkY == y1) && (x2-x1==-2) && (y2-y1==2))&&(Turn== 1|| IsKing[x1][y1])) {
-                            return true;
+                    if(Turn ==2 || IsKing[checkX][checkY]) {
+                        if (IsJumpable(checkX, checkY, 1, -1)) {
+                            exist = true;
+                            logg("checkX:" + checkX);
+                            logg("checkY:" + checkY);
+                            logg("1 -1");
+                            if (((checkX == x1) && (checkY == y1) && (x2 - x1 == 2) && (y2 - y1 == -2)) && (Turn == 2 || IsKing[x1][y1])) {
+                                return true;
+                            }
                         }
-                    }
-                    if (IsJumpable(checkX, checkY, 1, -1)) {
-                        exist = true;
-                        if (((checkX == x1) && (checkY == y1) && (x2-x1==2) && (y2-y1==-2))&&(Turn== 2|| IsKing[x1][y1])) {
-                            return true;
-                        }
-                    }
-                    if (IsJumpable(checkX, checkY, -1, -1)) {
-                        exist = true;
-                        if (((checkX == x1) && (checkY == y1) && (x2-x1==-2) && (y2-y1==-2))&&(Turn== 2|| IsKing[x1][y1])) {
-                            return true;
+                        if (IsJumpable(checkX, checkY, -1, -1)) {
+                            exist = true;
+                            logg("checkX:" + checkX);
+                            logg("checkY:" + checkY);
+                            logg("-1 -1");
+                            if (((checkX == x1) && (checkY == y1) && (x2 - x1 == -2) && (y2 - y1 == -2)) && (Turn == 2 || IsKing[x1][y1])) {
+                                return true;
+                            }
                         }
                     }
                 }
@@ -504,9 +532,12 @@ public class BoardGameSys extends JavaPlugin{
             Man10Checkers.mcheckers.getLogger().info("BoardInput:3");
             return;
         }
-
+        if((((y2-y1)>0 && Turn ==2)||((y2-y1)<0 && Turn ==1)) && !IsKing[x1][y1]){
+            ErrorType=4;
+            return;
+        }
         //
-        if (abs(x1 - x2) == 1 && abs(y1 - y2) == 1) {
+        if (abs(x1 - x2) == 1 && abs(y1 - y2) == 1 && IsOneMovable(x1,y1,x2-x1,y2-y1)) {
             Man10Checkers.mcheckers.getLogger().info("BoardInput:4");
             if (Board[x1][y1] == PlayerPiece) {
                 Board[x1][y1] = 0;
@@ -537,7 +568,7 @@ public class BoardGameSys extends JavaPlugin{
             Man10Checkers.mcheckers.getLogger().info("BoardInput:8");
             return;
         }
-
+        CreateKing();
         saveData(Boardname);
         if(PlayerPiece ==1) {
             PlayerPiece =2;
@@ -546,7 +577,7 @@ public class BoardGameSys extends JavaPlugin{
             PlayerPiece =1;
             Man10Checkers.mcheckers.getLogger().info("BoardInput:10");
         }
-        CreateKing();
+
     }
     private static void CreateKing() {
         if(Board[0][0]==2) IsKing[0][0] = true;
@@ -555,6 +586,37 @@ public class BoardGameSys extends JavaPlugin{
         if(Board[0][8]==1) IsKing[0][8] = true;
         if(Board[2][8]==1) IsKing[2][8] = true;
         if(Board[4][8]==1) IsKing[4][8] = true;
+    }
+    public static int RestTurn(){
+        for(boolean[] row : IsKing){
+            for(boolean men : row){
+                if(!men) return 0;
+            }
+        }
+        RestTurn--;
+        if(RestTurn ==0){
+            int MenCount1 =0;
+            int MenCount2 =0;
+
+            for(int[] row : Board){
+                for(int men : row){
+                    if(men==1){
+                        MenCount1++;
+                    }else{
+                        MenCount2++;
+                    }
+                }
+            }
+            if(MenCount1 > MenCount2){
+                return 1;
+            } else if (MenCount1 < MenCount2) {
+                return 2;
+            } else {
+                return 3;
+            }
+        }
+
+        return 0;
     }
 
     public static int WinCheck(String Boardname) {

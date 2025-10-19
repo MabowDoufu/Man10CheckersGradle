@@ -154,24 +154,57 @@ public class Events implements Listener {
             //ゲーム終了時の判定
             SetLoreMessage("",e.getInventory());
             Man10Checkers.mcheckers.getLogger().info("before wincheck");
-            if(WinCheck(CurrentBoard)==0) return;
-            //yml削除
-            Man10Checkers.mcheckers.getLogger().info("pass wincheck");
-            deleteData(CurrentBoard);
-            //title変更
-            //opponentゲット
+
             String WinnerName = "";
             Player Opponent = null;
-            if(WinCheck(CurrentBoard)==1){
-                WinnerName = Players.get(0).getName();
-                Opponent = Players.get(1);
-            } else if (WinCheck(CurrentBoard)==2) {
-                WinnerName = Players.get(1).getName();
-                Opponent = Players.get(0);
+
+            if(WinCheck(CurrentBoard)==0){
+
+                switch (RestTurn()){
+                    case 0:
+                        return;
+                    case 1:
+                        WinnerName = Players.get(0).getName();
+                        Opponent = Players.get(1);
+                        break;
+                    case 2:
+                        WinnerName = Players.get(1).getName();
+                        Opponent = Players.get(0);
+                        break;
+                    case 3:
+                        if(Turn==1){
+                            Opponent = Players.get(1);
+                        }else{
+                            Opponent = Players.get(0);
+                        }
+                        deleteData(CurrentBoard);
+                        Clicker.openInventory(getInv("引き分けになりました！"));
+                        Opponent.openInventory(getInv("引き分けになりました！"));
+                        Clicker.sendMessage(Config.prefix+"引き分けになりました！");
+                        Opponent.sendMessage(Config.prefix+"引き分けになりました！");
+                        return;
+                }
+
+            }else{
+                //yml削除
+                Man10Checkers.mcheckers.getLogger().info("pass wincheck");
+                //title変更
+                //opponentゲット
+
+                if (WinCheck(CurrentBoard) == 1) {
+                    WinnerName = Players.get(0).getName();
+                    Opponent = Players.get(1);
+                } else if (WinCheck(CurrentBoard) == 2) {
+                    WinnerName = Players.get(1).getName();
+                    Opponent = Players.get(0);
+                }
             }
-            Clicker.sendMessage(WinnerName +"が勝利しました！！");
+
+            Clicker.openInventory(getInv(WinnerName+"が勝利しました！！"));
             Opponent.openInventory(getInv(WinnerName+"が勝利しました！！"));
-            Opponent.sendMessage(WinnerName+"が勝利しました！！");
+            Clicker.sendMessage(Config.prefix+WinnerName +"が勝利しました！！");
+            Opponent.sendMessage(Config.prefix+WinnerName+"が勝利しました！！");
+            deleteData(CurrentBoard);
         }
 
 

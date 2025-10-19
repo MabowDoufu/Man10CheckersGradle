@@ -20,6 +20,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 import java.io.File;
 import java.util.*;
 
+import static mabowdoufu.man10checkersgradle.Man10Checkers.logg;
 import static mabowdoufu.man10checkersgradle.Man10Checkers.mcheckers;
 
 public class Commands implements @Nullable CommandExecutor, TabCompleter {
@@ -103,10 +104,11 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     mcheckers.getLogger().info("sender.toString():"+sender.toString());
                     BoardGameSys.ResetYml((sender).getName());
                     BoardGameSys.Recruiting = true;
+                    BoardGameSys.DuringGame = false;
                     BoardGameSys.Players.add((Player) sender);
                     mcheckers.getLogger().info("BoardGameSys.Players.toString():"+BoardGameSys.Players.toString());
                     BoardGameSys.saveData((sender).getName());
-
+                    Recruitment.waitingTimer(sender.getName());
                     /// 以下検証用
                     File gameyml2 = new File("plugins/Man10Checkers/game.yml");
                     YamlConfiguration yml2 = YamlConfiguration.loadConfiguration(gameyml);
@@ -175,6 +177,7 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     ///ゲーム参加処理
                     BoardGameSys.Players.add((Player) sender);
                     BoardGameSys.Recruiting = false;
+                    logg("DuringGameVar set true");
                     BoardGameSys.DuringGame = true;
                     BoardGameSys.saveData(args[1]);
                     //gui開く処理

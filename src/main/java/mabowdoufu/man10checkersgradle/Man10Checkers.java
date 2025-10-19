@@ -11,18 +11,18 @@ public final class Man10Checkers extends JavaPlugin {
 
     /// tasklist
     ///
-    /// 未対策
-    ///
-    /// 間違った手を2回目のクリックで押したのにclick=0にならないことの対処
-    ///
+    /// 未記述
+    ///　[...](https://github.com/yusama125718/Man10Reversi/blob/05f3b23ff4c96ad3ab373198dd0b4d9e70da7f10/src/main/java/yusama125718/man10Reversi/GameManager.java#L163)
     /// ---
-    /// 対処済み未テスト
+    /// 記述済み未テスト
     ///
     ///
     ///
     /// 確認すること/作業
-    /// clickの値書き込んでるところに全部p.logつける→デバッグ
-    ///
+    /// ゲームの終了が正常になされるか
+    ///　既存のman10のゲームとの違いを把握
+    /// テクスチャ描く？
+    /// 効果音つける
     public static JavaPlugin mcheckers;
     public static mabowdoufu.man10checkersgradle.BoardGameSys bgs;
     private final Events events = new Events(this);
