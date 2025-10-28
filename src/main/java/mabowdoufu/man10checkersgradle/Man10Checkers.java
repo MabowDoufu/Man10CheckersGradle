@@ -10,14 +10,12 @@ import java.util.Arrays;
 public final class Man10Checkers extends JavaPlugin {
 
     /// tasklist
+    /// Eventsの303まで完了
+    /// Ability別のスキル使用画面での処理記述
+    /// AbilityPointの入手法考える
+    /// Ability画面移行用のアイテムをinvセットする(getInvに記述？)
     ///
-    /// 未記述
-    ///　[...](https://github.com/yusama125718/Man10Reversi/blob/05f3b23ff4c96ad3ab373198dd0b4d9e70da7f10/src/main/java/yusama125718/man10Reversi/GameManager.java#L163)
-    /// ---
-    /// 記述済み未テスト
-    ///
-    ///
-    ///
+    /// --------------------
     /// 確認すること/作業
     /// ゲームの終了が正常になされるか
     ///　既存のman10のゲームとの違いを把握

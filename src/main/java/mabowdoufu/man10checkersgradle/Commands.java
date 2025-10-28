@@ -109,6 +109,13 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     mcheckers.getLogger().info("BoardGameSys.Players.toString():"+BoardGameSys.Players.toString());
                     BoardGameSys.saveData((sender).getName());
                     Recruitment.waitingTimer(sender.getName());
+
+                    ///---以下GameDataへの値入力
+                    GameData g = new GameData();
+                    g.p1 = sender_uuid;
+                    Data.games.put(sender.getName(),g);
+                    ///----
+
                     /// 以下検証用
                     File gameyml2 = new File("plugins/Man10Checkers/game.yml");
                     YamlConfiguration yml2 = YamlConfiguration.loadConfiguration(gameyml);
@@ -181,6 +188,11 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     BoardGameSys.DuringGame = true;
                     BoardGameSys.saveData(args[1]);
                     //gui開く処理
+                    ///---以下GameDataへの値入力
+                    GameData g = Data.games.get(args[1]);
+                    g.p2 = sender_uuid;
+                    ///----
+
                     /// ここまで到達
                     Inventory inv = BoardGameSys.getInv("");
                     (BoardGameSys.Players.get(0)).openInventory(inv);
@@ -196,6 +208,7 @@ public class Commands implements @Nullable CommandExecutor, TabCompleter {
                     }
                     try{
                         yml.set(args[1],null);
+                        Data.games.remove(args[1]);
                         ///ゲーム強制終了処理を書く(events終わった後に書く)
                         yml.save(gameyml);
                         sender.sendMessage(Config.prefix + "§r終了しました");

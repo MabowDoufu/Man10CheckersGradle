@@ -166,6 +166,7 @@ public class BoardGameSys extends JavaPlugin{
         f = new File("plugins/Man10Checkers/game.yml");
         yml = YamlConfiguration.loadConfiguration(f);
         yml.set(Boardname, null);
+        Data.games.remove(Boardname);
         try {
             yml.save(f);
         } catch (Exception e) {
@@ -208,6 +209,7 @@ public class BoardGameSys extends JavaPlugin{
             }
             j++;
         }
+        inv.setItem(45,createGUIItem(END_CRYSTAL,"アビリティ選択画面を開く",""));
         return inv;
     }
 
@@ -654,4 +656,6 @@ public class BoardGameSys extends JavaPlugin{
         //jumpmoveだけでなく通常移動ができるか否かもゲーム終了かの判断に加える
         return 0;
     }
+
+
 }

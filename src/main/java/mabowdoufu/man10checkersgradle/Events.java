@@ -1,4 +1,7 @@
 package mabowdoufu.man10checkersgradle;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -7,16 +10,25 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
+import org.checkerframework.checker.units.qual.C;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static mabowdoufu.man10checkersgradle.BoardGameSys.*;
+import static mabowdoufu.man10checkersgradle.Data.*;
+import static org.bukkit.Material.*;
+import static org.bukkit.Material.WHITE_GLAZED_TERRACOTTA;
 
 
 public class Events implements Listener {
+
+
 
     private final Man10Checkers plugin;
 
@@ -54,12 +66,26 @@ public class Events implements Listener {
     public void InventoryClick(InventoryClickEvent e){
         Man10Checkers.mcheckers.getLogger().info("invevent");
         Man10Checkers.mcheckers.getLogger().info("e.getRawSlot():"+e.getRawSlot());
-        if(!e.getView().getTitle().equals(Config.prefix)) return;
+        if(!e.getView().getTitle().contains(Config.prefix)) return;
+        e.setCancelled(true);
         if(e.getRawSlot()== -999) return;
         if(e.getRawSlot() > 53) return;
-        e.setCancelled(true);
-        Man10Checkers.mcheckers.getLogger().info("Turn:"+String.valueOf(BoardGameSys.Turn));
+        if(e.getView().getTitle().contains("アビリティ選択")){
+            AbilityInventoryClick(e);
+            return;
+        }
 
+        if(e.getView().getTitle().contains("Ability")){
+            abilityUseInventoryClick(e);
+            return;
+        }
+
+        Man10Checkers.mcheckers.getLogger().info("Turn:"+String.valueOf(BoardGameSys.Turn));
+        if(e.getRawSlot() == 45){
+            //ability画面に移行
+            e.getWhoClicked().openInventory(getAbilityInv());
+            return;
+        }
         Man10Checkers.mcheckers.getLogger().info("invevent2");
         Player Clicker = (Player) e.getWhoClicked();
         LoadData(getBoard(e.getWhoClicked().getName()));
@@ -141,7 +167,23 @@ public class Events implements Listener {
                     return;
                 default:
                     Man10Checkers.mcheckers.getLogger().info("2ndCheckNoError");
-                    ChangeTurn();
+                    boolean TurnChange = true;
+                    if(TurnChange){
+                        ChangeTurn();
+                    }else{
+                        Player Trapped = null;
+                        Player Opponent = null;
+                        if(Turn==1){
+                            Trapped = Players.get(0);
+                            Opponent = Players.get(1);
+                        }else if(Turn==2){
+                            Trapped = Players.get(1);
+                            Opponent = Players.get(0);
+                        }
+                        Trapped.openInventory(getInv("あなたは罠にかかった！次のターンは一回休みです"));
+                        Opponent.openInventory(getInv("相手は罠にかかった！次は二回続けて行動できます"));
+
+                    }
                     Man10Checkers.mcheckers.getLogger().info("click sets 0");
                     Click =0;
 
@@ -211,5 +253,112 @@ public class Events implements Listener {
 
 
     }
+    public void AbilityInventoryClick(InventoryClickEvent e){
+        //アビリティinvの場合
+        LoadData(Data.getBoardNameFromUUID(e.getWhoClicked().getUniqueId()));
+        Ability a = null;
+        String invTitle = null;
+        switch (e.getSlot()) {
+            case 19:
+                a =Ability.Trap;
+                invTitle = "トラップの設置場所を選択してください";
+                break;
+            case 20:
+                a =Ability.CreateKing;
+                invTitle = "キングにする自分の駒を選択してください";
 
+                break;
+            case 21:
+                a =Ability.ForceMove;
+                invTitle = "強制的に動かす駒を選択してください";
+
+                break;
+            case 22:
+                a =Ability.Mine;
+                invTitle = "地雷の設置場所を選択してください";
+                break;
+            case 23:
+                a =Ability.CreateMen;
+                invTitle = "新しく駒をおく場所を選択してください";
+                boolean creatable = false;
+                int endRowSlot = (Turn == 1) ? 0 : 8;
+                int[] availableColumnSlot = {0,2,4};
+
+                for(int column : availableColumnSlot){
+                    if(Board[column][endRowSlot] == 0) creatable = true;
+                }
+                if(!creatable){
+                    ItemStack Icon = e.getInventory().getItem(e.getRawSlot());
+                    ItemMeta IconMeta = e.getInventory().getItem(e.getRawSlot()).getItemMeta();
+                    List<Component> lore = new ArrayList<>(List.of(Component.text("§c新しく駒を設置できる箇所がありません！")));
+                    lore.addAll(IconMeta.lore());
+                    IconMeta.lore(lore);
+                    Icon.setItemMeta(IconMeta);
+                    e.getInventory().setItem(e.getRawSlot(),Icon);
+                    return;
+                }
+
+                break;
+            case 45:
+                Inventory abilityUseInv = Bukkit.createInventory(null,54,Config.prefix +"Ability|"+ invTitle);
+                abilityUseInv.setItem(45,createGUIItem(BARRIER,"アビリティの使用をキャンセルする",""));
+                abilityUseInv.setItem(53,createGUIItem(LIGHT_GRAY_CONCRETE,"アビリティを使用するマスを選択してください",""));
+                e.getWhoClicked().openInventory(getInv(getBoard(e.getWhoClicked().getName())));
+                return;
+        }
+
+        GameData gameData = getGameFromUUID(e.getWhoClicked().getUniqueId());
+        if(e.getWhoClicked().getUniqueId() == gameData.p1){
+            if(gameData.p1AbilityPoint.get(a) == 0) return;
+        }else{
+            if(gameData.p2AbilityPoint.get(a) == 0) return;
+        }
+        e.getWhoClicked().openInventory(getInv(invTitle));
+
+    }
+
+    public void abilityUseInventoryClick(InventoryClickEvent e){
+        if(e.getRawSlot() == 45){
+            e.getWhoClicked().openInventory(getAbilityInv());
+            return;
+        }
+        if(e.getRawSlot()==53 && e.getInventory().getItem(53).getType() == LIME_CONCRETE){
+            String boardName = getBoardNameFromUUID(e.getWhoClicked().getUniqueId());
+            LoadData(boardName);
+            e.getWhoClicked().openInventory(getInv(boardName));
+            return;
+        }
+
+        if(e.getView().getTitle().contains("トラップを置くマスを選択してください")){
+
+        } else if (e.getView().getTitle().contains("キングにする駒を選択してください")) {
+            
+        } else if (e.getView().getTitle().contains("移動させる駒を選択してください")) {
+
+        } else if (e.getView().getTitle().contains("選択した駒の移動先を選択してください")) {
+
+        } else if (e.getView().getTitle().contains("地雷を設置するマスを選択してください")) {
+
+        } else if (e.getView().getTitle().contains("新しい駒を置くマスを選択してください")) {
+
+        }
+
+    }
+
+    public Inventory getAbilityInv(){
+        Inventory abilityInv = Bukkit.createInventory(null, 54, Config.prefix + "アビリティを選択してください");
+        int i = 0;
+        //Mapのkeyからenumの列挙子を取得
+        for(Data.Ability a: Data.ability_details.keySet()){
+            ItemStack item = createGUIItem(material.get(a),"黒の駒","");
+            ItemMeta meta = item.getItemMeta();
+            meta.lore(Data.ability_details.get(a));
+            //meta.loreはkyori.adventureのcomponentに対応
+            item.setItemMeta(meta);
+            abilityInv.setItem(i+19, item);
+            i++;
+        }
+        abilityInv.setItem(45,createGUIItem(END_CRYSTAL,"アビリティ選択画面を開く",""));
+        return abilityInv;
+    }
 }
