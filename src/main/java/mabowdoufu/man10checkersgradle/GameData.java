@@ -9,8 +9,11 @@ import java.util.UUID;
 public class GameData {
     public UUID p1;
     public UUID p2;
-    public int[][] traps;
-    public int[][] mines;
+    public boolean[][] traps;
+    public boolean[][] mines;
+    public boolean continuousTurn = false;
+    public int abilityX;
+    public int abilityY;
     public Map<Data.Ability, Integer> p1AbilityPoint = Map.ofEntries(
             Map.entry(Data.Ability.Trap,0),
             Map.entry(Data.Ability.CreateKing,0),

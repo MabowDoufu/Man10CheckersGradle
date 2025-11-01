@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static java.lang.Math.abs;
 import static mabowdoufu.man10checkersgradle.BoardGameSys.*;
 import static mabowdoufu.man10checkersgradle.Data.*;
 import static org.bukkit.Material.*;
@@ -136,60 +137,64 @@ public class Events implements Listener {
             //作業メモ： error等の挙動をまず確認・二回目のマス選択で、離れたマスを選択した場合に即returnさせる・warning消す
             BoardInput(CurrentBoard,x1,y1,x2,y2);
 
-            switch (ErrorType){
+            switch (ErrorType) {
                 case 1:
-                    Clicker.openInventory(SetLoreMessage("Error:チェッカーで使用しないマスを選択しています。",e.getInventory()));
+                    Clicker.openInventory(SetLoreMessage("Error:チェッカーで使用しないマスを選択しています。", e.getInventory()));
                     Man10Checkers.mcheckers.getLogger().info("2ndCheckError1");
                     LoadData(CurrentBoard);
-                    Click =0;
+                    Click = 0;
                     saveData(CurrentBoard);
                     return;
                 case 2:
-                    Clicker.openInventory(SetLoreMessage("Error:相手の駒を飛び越えられる手が存在します。飛び越えられる手を選択してください。",e.getInventory()));
+                    Clicker.openInventory(SetLoreMessage("Error:相手の駒を飛び越えられる手が存在します。飛び越えられる手を選択してください。", e.getInventory()));
                     Man10Checkers.mcheckers.getLogger().info("2ndCheckError2");
                     LoadData(CurrentBoard);
-                    Click =0;
+                    Click = 0;
                     saveData(CurrentBoard);
                     return;
                 case 3:
-                    Clicker.openInventory(SetLoreMessage("Error:最初に選択した駒の一つ斜めの駒か、相手の駒を飛び越えられる場合は二つ斜め前の駒を選択してください。",e.getInventory()));
+                    Clicker.openInventory(SetLoreMessage("Error:最初に選択した駒の一つ斜めの駒か、相手の駒を飛び越えられる場合は二つ斜め前の駒を選択してください。", e.getInventory()));
                     Man10Checkers.mcheckers.getLogger().info("2ndCheckError3");
                     LoadData(CurrentBoard);
-                    Click =0;
+                    Click = 0;
                     saveData(CurrentBoard);
                     return;
                 case 4:
-                    Clicker.openInventory(SetLoreMessage("Error:その方向に駒は進めません。",e.getInventory()));
+                    Clicker.openInventory(SetLoreMessage("Error:その方向に駒は進めません。", e.getInventory()));
                     Man10Checkers.mcheckers.getLogger().info("2ndCheckError4");
                     LoadData(CurrentBoard);
-                    Click =0;
+                    Click = 0;
                     saveData(CurrentBoard);
                     return;
                 default:
+                    GameData g = Data.getGameFromUUID(e.getWhoClicked().getUniqueId());
+
                     Man10Checkers.mcheckers.getLogger().info("2ndCheckNoError");
-                    boolean TurnChange = true;
-                    if(TurnChange){
+                    if (!g.continuousTurn) {
                         ChangeTurn();
-                    }else{
+                    } else {
+                        g.continuousTurn = false;
+                    }
+                    Man10Checkers.mcheckers.getLogger().info("click sets 0");
+                    Click = 0;
+
+                    saveData(CurrentBoard);
+                    Players.get(0).openInventory(getInv(""));
+                    Players.get(1).openInventory(getInv(""));
+                    if (g.traps[x2][y2]){
+                        g.continuousTurn = true;
                         Player Trapped = null;
                         Player Opponent = null;
-                        if(Turn==1){
+                        if (Turn == 1) {
                             Trapped = Players.get(0);
                             Opponent = Players.get(1);
-                        }else if(Turn==2){
+                        } else if (Turn == 2) {
                             Trapped = Players.get(1);
                             Opponent = Players.get(0);
                         }
                         Trapped.openInventory(getInv("あなたは罠にかかった！次のターンは一回休みです"));
                         Opponent.openInventory(getInv("相手は罠にかかった！次は二回続けて行動できます"));
-
                     }
-                    Man10Checkers.mcheckers.getLogger().info("click sets 0");
-                    Click =0;
-
-                    saveData(CurrentBoard);
-                    Players.get(0).openInventory(getInv(""));
-                    Players.get(1).openInventory(getInv(""));
                     break;
             }
             //invのタイトル変更方法(pass
@@ -300,9 +305,6 @@ public class Events implements Listener {
 
                 break;
             case 45:
-                Inventory abilityUseInv = Bukkit.createInventory(null,54,Config.prefix +"Ability|"+ invTitle);
-                abilityUseInv.setItem(45,createGUIItem(BARRIER,"アビリティの使用をキャンセルする",""));
-                abilityUseInv.setItem(53,createGUIItem(LIGHT_GRAY_CONCRETE,"アビリティを使用するマスを選択してください",""));
                 e.getWhoClicked().openInventory(getInv(getBoard(e.getWhoClicked().getName())));
                 return;
         }
@@ -313,34 +315,96 @@ public class Events implements Listener {
         }else{
             if(gameData.p2AbilityPoint.get(a) == 0) return;
         }
-        e.getWhoClicked().openInventory(getInv(invTitle));
+        Inventory abilityUseInv = Bukkit.createInventory(null,54,Config.prefix +"Ability|"+ invTitle);
+        abilityUseInv.setItem(45,createGUIItem(BARRIER,"アビリティの使用をキャンセルする",""));
+        abilityUseInv.setItem(53,createGUIItem(LIGHT_GRAY_CONCRETE,"アビリティを使用するマスを選択してください",""));
+
+        e.getWhoClicked().openInventory(abilityUseInv);
 
     }
 
-    public void abilityUseInventoryClick(InventoryClickEvent e){
-        if(e.getRawSlot() == 45){
+    public void abilityUseInventoryClick(InventoryClickEvent e) {
+        if (e.getRawSlot() == 45) {
             e.getWhoClicked().openInventory(getAbilityInv());
             return;
         }
-        if(e.getRawSlot()==53 && e.getInventory().getItem(53).getType() == LIME_CONCRETE){
+
+        if (e.getRawSlot() % 2 == 1) return;
+        Ability a = null;
+        int stage = 1;
+        int y = (int) Math.floor(((double) e.getRawSlot() / 9));
+        int x = e.getRawSlot() % 9;
+        GameData g = Data.getGameFromUUID(e.getWhoClicked().getUniqueId());
+
+        if (e.getView().getTitle().contains("トラップを置くマスを選択してください")) {
+            a = Ability.Trap;
+        } else if (e.getView().getTitle().contains("キングにする駒を選択してください")) {
+            a = Ability.CreateKing;
+        } else if (e.getView().getTitle().contains("移動させる駒を選択してください")) {
+            a = Ability.ForceMove;
+        } else if (e.getView().getTitle().contains("選択した駒の移動先を選択してください")) {
+            a = Ability.ForceMove;
+            stage = 2;
+        } else if (e.getView().getTitle().contains("地雷を設置するマスを選択してください")) {
+            a = Ability.Mine;
+        } else if (e.getView().getTitle().contains("新しい駒を置くマスを選択してください")) {
+            a = Ability.CreateMen;
+        }
+        if (e.getRawSlot() == 53 && e.getInventory().getItem(53).getType() == LIME_CONCRETE) {
+            switch (a) {
+                case Ability.Trap:
+                    g.traps[y][x] =true;
+                case Ability.CreateKing:
+                    Board[y][x] = Turn - 1;
+                case ForceMove:
+                    if (stage == 1) return;
+                    Board[y][x] = Board[g.abilityY][g.abilityX];
+                    Board[g.abilityY][g.abilityX] = 0;
+                    IsKing[y][x] = IsKing[g.abilityY][g.abilityX];
+                    IsKing[g.abilityY][g.abilityX] = false;
+                case Ability.Mine:
+                    g.mines[y][x] =true;
+                case Ability.CreateMen:
+                    Board[y][x] = Turn-1;
+                    IsKing[y][x] = false;
+            }
+            if(Turn ==1){
+                g.p1AbilityPoint.replace(a,g.p1AbilityPoint.get(a)-1);
+            }else{
+                g.p2AbilityPoint.replace(a,g.p2AbilityPoint.get(a)-1);
+            }
+
             String boardName = getBoardNameFromUUID(e.getWhoClicked().getUniqueId());
             LoadData(boardName);
             e.getWhoClicked().openInventory(getInv(boardName));
             return;
         }
 
-        if(e.getView().getTitle().contains("トラップを置くマスを選択してください")){
 
-        } else if (e.getView().getTitle().contains("キングにする駒を選択してください")) {
-            
-        } else if (e.getView().getTitle().contains("移動させる駒を選択してください")) {
-
-        } else if (e.getView().getTitle().contains("選択した駒の移動先を選択してください")) {
-
-        } else if (e.getView().getTitle().contains("地雷を設置するマスを選択してください")) {
-
-        } else if (e.getView().getTitle().contains("新しい駒を置くマスを選択してください")) {
-
+        if (Board[y][x] != 0 && !(a == Ability.CreateMen || a == Ability.ForceMove)) return;
+        if (Board[y][x] == Turn - 1 && (!(a == Ability.ForceMove && stage == 1) || a == Ability.CreateKing)) return;
+        if (abs(x - g.abilityX) < 2 && abs(y - g.abilityY) < 2 && a == Ability.ForceMove && stage == 2) return;
+        Inventory inv;
+        if (a == Ability.ForceMove) {
+            inv = getInv("Ability|" + g.toString());
+        } else {
+            inv = getInv("");
+            //ここに処理
+        }
+        if (a == Ability.CreateKing || a == Ability.CreateMen || (a == Ability.ForceMove && stage == 2)) {
+            inv.setItem(e.getRawSlot(), createGUIItem(GREEN_CONCRETE, "", ""));
+        }
+        if (a == Ability.Mine) {
+            inv.setItem(e.getRawSlot(), createGUIItem(TNT, "", ""));
+        }
+        if (a == Ability.Trap) {
+            inv.setItem(e.getRawSlot(), createGUIItem(TRIPWIRE_HOOK, "", ""));
+        }
+        if (a == Ability.ForceMove && stage == 1) {
+            inv.setItem(e.getRawSlot(), createGUIItem(AIR, "", ""));
+        }
+        if (!(a == Ability.ForceMove && stage == 1)) {
+            inv.setItem(53, createGUIItem(LIME_CONCRETE, "確定する", ""));
         }
 
     }
